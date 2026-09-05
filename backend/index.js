@@ -81,6 +81,16 @@ db.connect((err) => {
     else console.log('¡Conectado exitosamente a la base de datos MySQL!');
 });
 
+// Datos iniciales automáticos para evitar errores 500 con tablas vacías
+db.query("INSERT IGNORE INTO categorias (id_categoria, nombre) VALUES (1, 'General'), (2, 'Indumentaria')", (err) => {
+    if (!err) console.log("Categorías iniciales verificadas.");
+});
+
+db.query(`INSERT IGNORE INTO productos (id_producto, id_categoria, nombre, costo, precio_venta, stock_actual, stock_minimo) 
+          VALUES (1, 1, 'Producto de Prueba', 100.00, 150.00, 10, 2)`, (err) => {
+    if (!err) console.log("Producto inicial verificado.");
+});
+
 // --- CATEGORÍAS ---
 app.get('/api/categorias', (req, res) => {
     db.query('SELECT * FROM categorias', (err, resultados) => {
