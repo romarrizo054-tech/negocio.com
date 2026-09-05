@@ -5,12 +5,14 @@ const cors = require('cors');
 const app = express();
 app.use(cors()); // Esto permite que cualquier dispositivo (celular o PC) se conecte
 app.use(express.json());
+
+console.log("Intentando conectar a:", process.env.DB_HOST, "con usuario:", process.env.DB_USER);
 const db = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'defaultdb',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
     ssl: {
         rejectUnauthorized: false
     }
