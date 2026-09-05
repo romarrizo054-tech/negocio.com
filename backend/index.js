@@ -72,7 +72,6 @@ const db = mysql.createConnection({
             else console.log('✅ Tablas verificadas y listas en la base de datos.');
         });
     }
-})
 });
 
 db.connect((err) => {
