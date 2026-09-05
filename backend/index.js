@@ -2,15 +2,79 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 
+;
+const cors = require('cors');
 const app = express();
-app.use(cors());
+app.use(cors()); // Esto permite que cualquier dispositivo (celular o PC) se conecte
 app.use(express.json());
-
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '2003',
-    database: 'sistema_emprendimiento'
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'defaultdb',
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+   
+    db.connect((err) => {
+    if (err) {
+        console.error('Error conectando a la base de datos:', err);
+    } else {
+        console.log('¡Conectado exitosamente a la base de datos MySQL!');
+        
+        // --- CREACIÓN AUTOMÁTICA DE TABLAS ---
+        const crearTablas = `
+            CREATE TABLE IF NOT EXISTS categorias (
+                id_categoria INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(100) NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS productos (
+                id_producto INT AUTO_INCREMENT PRIMARY KEY,
+                id_categoria INT,
+                nombre VARCHAR(150) NOT NULL,
+                costo DECIMAL(10,2) NOT NULL,
+                precio_venta DECIMAL(10,2) NOT NULL,
+                stock_actual INT NOT NULL,
+                stock_minimo INT NOT NULL,
+                FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
+            );
+
+            CREATE TABLE IF NOT EXISTS ventas (
+                id_venta INT AUTO_INCREMENT PRIMARY KEY,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metodo_pago VARCHAR(50) NOT NULL,
+                total DECIMAL(10,2) NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS detalle_ventas (
+                id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+                id_venta INT,
+                id_producto INT,
+                cantidad INT NOT NULL,
+                precio_unitario DECIMAL(10,2) NOT NULL,
+                FOREIGN KEY (id_venta) REFERENCES ventas(id_venta),
+                FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+            );
+
+            CREATE TABLE IF NOT EXISTS movimientos_gastos (
+                id_gasto INT AUTO_INCREMENT PRIMARY KEY,
+                id_categoria INT DEFAULT 1,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tipo VARCHAR(50) NOT NULL,
+                descripcion TEXT NOT NULL,
+                monto DECIMAL(10,2) NOT NULL
+            );
+        `;
+
+        db.query(crearTablas, (error) => {
+            if (error) console.error('Error al crear las tablas:', error);
+            else console.log('✅ Tablas verificadas y listas en la base de datos.');
+        });
+    }
+})
 });
 
 db.connect((err) => {
@@ -109,4 +173,6 @@ app.get('/api/alertas-stock', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Servidor backend corriendo en el puerto ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
