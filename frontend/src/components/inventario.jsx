@@ -17,14 +17,14 @@ function Inventario() {
 
   const obtenerProductos = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/productos');
+      const res = await axios.get('https://negocio-com-1.onrender.com:3001/api/productos');
       setProductos(res.data);
     } catch (error) { console.error(error); }
   };
 
   const obtenerCategorias = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/categorias');
+      const res = await axios.get('https://negocio-com-1.onrender.com:3001/api/categorias');
       setCategorias(res.data);
       if (res.data.length > 0) setNuevoProducto(prev => ({ ...prev, id_categoria: res.data[0].id_categoria }));
     } catch (error) { console.error(error); }
@@ -35,7 +35,7 @@ function Inventario() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3001/api/productos', nuevoProducto);
+      await axios.post('https://negocio-com-1.onrender.com:3001/api/productos', nuevoProducto);
       alert('¡Producto agregado al inventario!');
       setMostrarFormulario(false);
       setNuevoProducto({ id_categoria: categorias[0]?.id_categoria || '', nombre: '', costo: '', precio_venta: '', stock_actual: '', stock_minimo: '' });
@@ -46,7 +46,7 @@ function Inventario() {
   const eliminarProducto = async (id) => {
     if (window.confirm('¿Estás segura de que deseas eliminar este producto?')) {
       try {
-        await axios.delete(`http://localhost:3001/api/productos/${id}`);
+        await axios.delete(`https://negocio-com-1.onrender.com:3001/api/productos/${id}`);
         alert('Producto eliminado correctamente');
         obtenerProductos();
       } catch (error) {

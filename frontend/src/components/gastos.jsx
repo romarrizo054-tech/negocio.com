@@ -8,7 +8,7 @@ function Gastos() {
   });
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/categorias')
+    axios.get('https://negocio-com-1.onrender.com:3001/api/categorias')
       .then(res => {
         setCategorias(res.data);
         if(res.data.length > 0) setGasto(prev => ({ ...prev, id_categoria: res.data[0].id_categoria }));
@@ -20,7 +20,7 @@ function Gastos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3001/api/gastos', gasto);
+      await axios.post('https://negocio-com-1.onrender.com:3001/api/gastos', gasto);
       alert('¡Gasto registrado correctamente!');
       setGasto({ id_categoria: categorias[0].id_categoria, tipo: 'Gasto Operativo', descripcion: '', monto: '' });
     } catch (error) {

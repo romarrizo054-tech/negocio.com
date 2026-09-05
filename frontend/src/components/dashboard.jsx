@@ -8,13 +8,13 @@ function Dashboard() {
   const [alertas, setAlertas] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/categorias').then(res => setCategorias(res.data));
+    axios.get('https://negocio-com-1.onrender.com:3001/api/categorias').then(res => setCategorias(res.data));
   }, []);
 
   useEffect(() => {
     const params = categoriaFiltro ? `?id_categoria=${categoriaFiltro}` : '';
     
-    axios.get(`http://localhost:3001/api/dashboard${params}`).then(res => {
+    axios.get(`https://negocio-com-1.onrender.com:3001/api/dashboard${params}`).then(res => {
       setMetricas({
         ingresos_brutos: res.data.ingresos_brutos || 0,
         ganancia_neta: res.data.ganancia_neta || 0,
@@ -22,7 +22,7 @@ function Dashboard() {
       });
     });
 
-    axios.get(`http://localhost:3001/api/alertas-stock${params}`).then(res => setAlertas(res.data));
+    axios.get(`https://negocio-com-1.onrender.com:3001/api/alertas-stock${params}`).then(res => setAlertas(res.data));
   }, [categoriaFiltro]);
 
   const balanceFinal = metricas.ganancia_neta - metricas.total_gastos;

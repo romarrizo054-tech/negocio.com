@@ -11,11 +11,11 @@ function Caja() {
   const [cantidad, setCantidad] = useState(1);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/productos')
+    axios.get('https://negocio-com-1.onrender.com:3001/api/productos')
       .then(res => setProductos(res.data))
       .catch(err => console.error(err));
     
-    axios.get('http://localhost:3001/api/categorias')
+    axios.get('https://negocio-com-1.onrender.com:3001/api/categorias')
       .then(res => setCategorias(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -47,10 +47,10 @@ function Caja() {
   const confirmarVenta = async () => {
     if (carrito.length === 0) return alert('El carrito está vacío');
     try {
-      await axios.post('http://localhost:3001/api/ventas', { metodo_pago: metodoPago, total: totalVenta, detalles: carrito });
+      await axios.post('https://negocio-com-1.onrender.com:3001/api/ventas', { metodo_pago: metodoPago, total: totalVenta, detalles: carrito });
       alert('¡Venta registrada con éxito!');
       setCarrito([]);
-      const res = await axios.get('http://localhost:3001/api/productos');
+      const res = await axios.get('https://negocio-com-1.onrender.com:3001/api/productos');
       setProductos(res.data);
     } catch (error) { alert('Hubo un problema al registrar la venta'); }
   };
