@@ -21,7 +21,6 @@ function App() {
           {/* Aquí conectamos la ruta con el componente que acabamos de crear */}
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/caja" element={<Caja />} />
-          <Route path="/gastos" element={<h2>Pantalla de Gastos y Pérdidas</h2>} />
           <Route path="/ventas" element={<Ventas />} />
         </Routes>
       </div>
