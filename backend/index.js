@@ -306,73 +306,61 @@ app.get('/api/productos', (req, res) => {
 // CREAR PRODUCTO
 // ==========================================
 
-app.post('/api/productos', (req, res) => {
+// ==========================================
+// OBTENER PRODUCTOS
+// ==========================================
 
-    const {
-        id_categoria,
-        nombre,
-        costo,
-        precio_venta,
-        stock_actual,
-        stock_minimo
-    } = req.body;
-
-    if (
-        !nombre ||
-        costo === undefined ||
-        precio_venta === undefined ||
-        stock_actual === undefined ||
-        stock_minimo === undefined
-    ) {
-
-        return res.status(400).json({
-            error: 'Faltan datos obligatorios del producto'
-        });
-    }
+app.get('/api/productos', (req, res) => {
 
     const sql = `
-        INSERT INTO productos
-        (
-            id_categoria,
-            nombre,
-            costo,
-            precio_venta,
-            stock_actual,
-            stock_minimo
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
+        SELECT
+            p.id_producto,
+            p.id_categoria,
+            p.nombre,
+            p.costo,
+            p.precio_venta,
+            p.stock_actual,
+            p.stock_minimo,
+
+            c.nombre AS nombre_categoria,
+
+            (p.precio_venta - p.costo)
+                AS ganancia_unitaria,
+
+            (
+                (p.precio_venta - p.costo)
+                * p.stock_actual
+            )
+                AS ganancia_stock
+
+        FROM productos p
+
+        LEFT JOIN categorias c
+            ON p.id_categoria = c.id_categoria
+
+        ORDER BY p.id_producto DESC
     `;
 
     db.query(
         sql,
-        [
-            id_categoria || 1,
-            nombre,
-            costo,
-            precio_venta,
-            stock_actual,
-            stock_minimo
-        ],
-        (err, resultado) => {
+        (err, resultados) => {
 
             if (err) {
 
                 console.error(
-                    '❌ ERROR AL GUARDAR PRODUCTO:',
+                    '❌ ERROR MYSQL PRODUCTOS:',
                     err
                 );
 
                 return res.status(500).json({
                     error: err.message,
                     code: err.code,
+                    errno: err.errno,
                     sqlMessage: err.sqlMessage
                 });
             }
 
-            res.status(201).json({
-                mensaje: '¡Producto guardado exitosamente!',
-                id_producto: resultado.insertId
-            });
+            res.json(resultados);
         }
     );
 });
@@ -568,6 +556,97 @@ app.post('/api/ventas', (req, res) => {
                         }
                     }
                 );
+            });
+        }
+    );
+});
+
+// ==========================================
+// EDITAR PRODUCTO
+// ==========================================
+
+app.put('/api/productos/:id', (req, res) => {
+
+    const id_producto = req.params.id;
+
+    const {
+        id_categoria,
+        nombre,
+        costo,
+        precio_venta,
+        stock_actual,
+        stock_minimo
+    } = req.body;
+
+    // ==========================================
+    // VALIDAR DATOS
+    // ==========================================
+
+    if (
+        !nombre ||
+        costo === undefined ||
+        precio_venta === undefined ||
+        stock_actual === undefined ||
+        stock_minimo === undefined
+    ) {
+        return res.status(400).json({
+            error: 'Faltan datos obligatorios del producto'
+        });
+    }
+
+    // ==========================================
+    // ACTUALIZAR PRODUCTO
+    // ==========================================
+
+    const sql = `
+        UPDATE productos
+        SET
+            id_categoria = ?,
+            nombre = ?,
+            costo = ?,
+            precio_venta = ?,
+            stock_actual = ?,
+            stock_minimo = ?
+        WHERE id_producto = ?
+    `;
+
+    db.query(
+        sql,
+        [
+            id_categoria || 1,
+            nombre,
+            costo,
+            precio_venta,
+            stock_actual,
+            stock_minimo,
+            id_producto
+        ],
+        (err, resultado) => {
+
+            if (err) {
+
+                console.error(
+                    '❌ ERROR AL EDITAR PRODUCTO:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            if (resultado.affectedRows === 0) {
+
+                return res.status(404).json({
+                    error: 'Producto no encontrado'
+                });
+            }
+
+            res.json({
+                mensaje: 'Producto actualizado correctamente',
+                id_producto: Number(id_producto)
             });
         }
     );
