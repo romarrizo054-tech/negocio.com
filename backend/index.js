@@ -139,15 +139,14 @@ const crearTablas = async () => {
 const insertarDatosIniciales = async () => {
 
     // ==========================================
-    // CATEGORÍAS
+    // CATEGORÍAS BASE
     // ==========================================
 
     const categorias = [
         'General',
         'Joyas',
         'Perfumes',
-        'Maquillaje',
-        'comida'
+        'Maquillaje'
     ];
 
     for (const nombre of categorias) {
@@ -166,7 +165,7 @@ const insertarDatosIniciales = async () => {
         );
     }
 
-    console.log('✅ Categorías base verificadas.');
+    console.log('✅ Categorías base verificadas:', categorias);
 
     // ==========================================
     // PRODUCTO DE PRUEBA
@@ -228,7 +227,7 @@ const insertarDatosIniciales = async () => {
 };
 
 // ==========================================
-// CATEGORÍAS
+// OBTENER CATEGORÍAS
 // ==========================================
 
 app.get('/api/categorias', (req, res) => {
@@ -264,7 +263,7 @@ app.get('/api/categorias', (req, res) => {
 });
 
 // ==========================================
-// PRODUCTOS
+// OBTENER PRODUCTOS
 // ==========================================
 
 app.get('/api/productos', (req, res) => {
@@ -424,7 +423,7 @@ app.delete('/api/productos/:id', (req, res) => {
 });
 
 // ==========================================
-// VENTAS
+// REGISTRAR VENTA
 // ==========================================
 
 app.post('/api/ventas', (req, res) => {
@@ -575,7 +574,7 @@ app.post('/api/ventas', (req, res) => {
 });
 
 // ==========================================
-// GASTOS
+// REGISTRAR GASTO
 // ==========================================
 
 app.post('/api/gastos', (req, res) => {
