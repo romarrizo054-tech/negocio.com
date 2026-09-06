@@ -11,6 +11,7 @@ function Inventario() {
 
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [gananciasProductos, setGananciasProductos] = useState([]);
 
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
 
@@ -30,7 +31,8 @@ function Inventario() {
     stock_minimo: ''
   };
 
-  const [nuevoProducto, setNuevoProducto] = useState(productoInicial);
+  const [nuevoProducto, setNuevoProducto] =
+    useState(productoInicial);
 
 
   // ==========================================
@@ -44,6 +46,15 @@ function Inventario() {
 
 
   // ==========================================
+  // ACTUALIZAR GANANCIAS CUANDO CAMBIA FILTRO
+  // ==========================================
+
+  useEffect(() => {
+    obtenerGananciasProductos();
+  }, [categoriaFiltro]);
+
+
+  // ==========================================
   // OBTENER PRODUCTOS
   // ==========================================
 
@@ -51,13 +62,18 @@ function Inventario() {
 
     try {
 
-      const res = await axios.get(`${API_URL}/productos`);
+      const res = await axios.get(
+        `${API_URL}/productos`
+      );
 
       setProductos(res.data);
 
     } catch (error) {
 
-      console.error('Error obteniendo productos:', error);
+      console.error(
+        'Error obteniendo productos:',
+        error
+      );
 
     }
 
@@ -72,7 +88,9 @@ function Inventario() {
 
     try {
 
-      const res = await axios.get(`${API_URL}/categorias`);
+      const res = await axios.get(
+        `${API_URL}/categorias`
+      );
 
       setCategorias(res.data);
 
@@ -80,14 +98,49 @@ function Inventario() {
 
         setNuevoProducto(prev => ({
           ...prev,
-          id_categoria: prev.id_categoria || res.data[0].id_categoria
+          id_categoria:
+            prev.id_categoria ||
+            res.data[0].id_categoria
         }));
 
       }
 
     } catch (error) {
 
-      console.error('Error obteniendo categorías:', error);
+      console.error(
+        'Error obteniendo categorías:',
+        error
+      );
+
+    }
+
+  };
+
+
+  // ==========================================
+  // OBTENER GANANCIAS REALES
+  // ==========================================
+
+  const obtenerGananciasProductos = async () => {
+
+    try {
+
+      const url = categoriaFiltro
+        ? `${API_URL}/ganancias-productos?id_categoria=${categoriaFiltro}`
+        : `${API_URL}/ganancias-productos`;
+
+      const res = await axios.get(url);
+
+      setGananciasProductos(res.data);
+
+    } catch (error) {
+
+      console.error(
+        'Error obteniendo ganancias:',
+        error
+      );
+
+      setGananciasProductos([]);
 
     }
 
@@ -109,7 +162,7 @@ function Inventario() {
 
 
   // ==========================================
-  // ABRIR FORMULARIO NUEVO
+  // NUEVO PRODUCTO
   // ==========================================
 
   const abrirNuevoProducto = () => {
@@ -118,7 +171,8 @@ function Inventario() {
     setProductoEditando(null);
 
     setNuevoProducto({
-      id_categoria: categorias[0]?.id_categoria || '',
+      id_categoria:
+        categorias[0]?.id_categoria || '',
       nombre: '',
       costo: '',
       precio_venta: '',
@@ -132,12 +186,13 @@ function Inventario() {
 
 
   // ==========================================
-  // ABRIR EDICIÓN
+  // EDITAR PRODUCTO
   // ==========================================
 
   const editarProducto = (producto) => {
 
     setModoEdicion(true);
+
     setProductoEditando(producto);
 
     setNuevoProducto({
@@ -166,14 +221,16 @@ function Inventario() {
   const cerrarFormulario = () => {
 
     setMostrarFormulario(false);
+
     setModoEdicion(false);
+
     setProductoEditando(null);
 
   };
 
 
   // ==========================================
-  // GUARDAR / EDITAR PRODUCTO
+  // GUARDAR PRODUCTO
   // ==========================================
 
   const handleSubmit = async (e) => {
@@ -184,7 +241,10 @@ function Inventario() {
 
     try {
 
-      if (modoEdicion && productoEditando) {
+      if (
+        modoEdicion &&
+        productoEditando
+      ) {
 
         // ==========================================
         // EDITAR
@@ -195,7 +255,9 @@ function Inventario() {
           nuevoProducto
         );
 
-        alert('✅ Producto actualizado correctamente');
+        alert(
+          '✅ Producto actualizado correctamente'
+        );
 
       } else {
 
@@ -208,13 +270,17 @@ function Inventario() {
           nuevoProducto
         );
 
-        alert('✅ ¡Producto agregado al inventario!');
+        alert(
+          '✅ ¡Producto agregado al inventario!'
+        );
 
       }
 
       cerrarFormulario();
 
       await obtenerProductos();
+
+      await obtenerGananciasProductos();
 
     } catch (error) {
 
@@ -254,9 +320,13 @@ function Inventario() {
         `${API_URL}/productos/${id}`
       );
 
-      alert('✅ Producto eliminado correctamente');
+      alert(
+        '✅ Producto eliminado correctamente'
+      );
 
-      obtenerProductos();
+      await obtenerProductos();
+
+      await obtenerGananciasProductos();
 
     } catch (error) {
 
@@ -271,7 +341,7 @@ function Inventario() {
 
 
   // ==========================================
-  // FILTRAR PRODUCTOS
+  // FILTRO DE PRODUCTOS
   // ==========================================
 
   const productosFiltrados = categoriaFiltro
@@ -284,30 +354,86 @@ function Inventario() {
 
 
   // ==========================================
-  // CALCULAR TOTALES
+  // TOTAL PRODUCTOS
   // ==========================================
 
-  const totalProductos = productosFiltrados.length;
+  const totalProductos =
+    productosFiltrados.length;
 
-  const totalUnidades = productosFiltrados.reduce(
-    (total, producto) =>
-      total + Number(producto.stock_actual || 0),
-    0
-  );
 
-  const gananciaStockTotal = productosFiltrados.reduce(
-    (total, producto) =>
-      total +
-      Number(
-        producto.ganancia_stock ||
-        (
-          (Number(producto.precio_venta) -
-            Number(producto.costo)) *
-          Number(producto.stock_actual)
-        )
-      ),
-    0
-  );
+  // ==========================================
+  // TOTAL UNIDADES
+  // ==========================================
+
+  const totalUnidades =
+    productosFiltrados.reduce(
+      (total, producto) =>
+        total +
+        Number(
+          producto.stock_actual || 0
+        ),
+      0
+    );
+
+
+  // ==========================================
+  // GANANCIA POTENCIAL DEL STOCK
+  // ==========================================
+
+  const gananciaStockTotal =
+    productosFiltrados.reduce(
+      (total, producto) => {
+
+        const ganancia =
+          Number(
+            producto.ganancia_unitaria ||
+            (
+              Number(producto.precio_venta || 0) -
+              Number(producto.costo || 0)
+            )
+          );
+
+        return total +
+          (
+            ganancia *
+            Number(
+              producto.stock_actual || 0
+            )
+          );
+
+      },
+      0
+    );
+
+
+  // ==========================================
+  // GANANCIA REAL TOTAL
+  // ==========================================
+
+  const gananciaTotal =
+    gananciasProductos.reduce(
+      (total, producto) =>
+        total +
+        Number(
+          producto.ganancia_total || 0
+        ),
+      0
+    );
+
+
+  // ==========================================
+  // UNIDADES VENDIDAS
+  // ==========================================
+
+  const unidadesVendidas =
+    gananciasProductos.reduce(
+      (total, producto) =>
+        total +
+        Number(
+          producto.unidades_vendidas || 0
+        ),
+      0
+    );
 
 
   // ==========================================
@@ -316,13 +442,39 @@ function Inventario() {
 
   const dinero = (valor) => {
 
-    return Number(valor || 0).toLocaleString(
+    return Number(
+      valor || 0
+    ).toLocaleString(
       'es-AR',
       {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       }
     );
+
+  };
+
+
+  // ==========================================
+  // BUSCAR GANANCIA DE UN PRODUCTO
+  // ==========================================
+
+  const obtenerGananciaReal = (
+    idProducto
+  ) => {
+
+    const encontrado =
+      gananciasProductos.find(
+        p =>
+          Number(p.id_producto) ===
+          Number(idProducto)
+      );
+
+    return encontrado
+      ? Number(
+          encontrado.ganancia_total || 0
+        )
+      : 0;
 
   };
 
@@ -363,7 +515,9 @@ function Inventario() {
             <select
               value={categoriaFiltro}
               onChange={(e) =>
-                setCategoriaFiltro(e.target.value)
+                setCategoriaFiltro(
+                  e.target.value
+                )
               }
               className="p-3 border-2 border-white/30 rounded-xl shadow-md font-bold text-indigo-900 bg-white/90 focus:outline-none focus:ring-4 focus:ring-violet-300"
             >
@@ -386,7 +540,7 @@ function Inventario() {
             </select>
 
 
-            {/* BOTÓN NUEVO */}
+            {/* NUEVO PRODUCTO */}
 
             <button
               onClick={
@@ -415,10 +569,10 @@ function Inventario() {
 
 
       {/* ======================================
-          RESUMEN
+          TARJETAS DE RESUMEN
       ====================================== */}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
 
         {/* PRODUCTOS */}
 
@@ -430,6 +584,10 @@ function Inventario() {
 
           <p className="text-3xl font-black text-indigo-700 mt-2">
             {totalProductos}
+          </p>
+
+          <p className="text-xs text-gray-400 mt-1">
+            En inventario
           </p>
 
         </div>
@@ -447,19 +605,46 @@ function Inventario() {
             {totalUnidades}
           </p>
 
+          <p className="text-xs text-gray-400 mt-1">
+            Disponibles actualmente
+          </p>
+
         </div>
 
 
-        {/* GANANCIA */}
+        {/* GANANCIA POTENCIAL */}
 
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
 
           <p className="text-gray-500 font-semibold">
-            Ganancia potencial del stock
+            Ganancia potencial
+          </p>
+
+          <p className="text-3xl font-black text-indigo-600 mt-2">
+            ${dinero(gananciaStockTotal)}
+          </p>
+
+          <p className="text-xs text-gray-400 mt-1">
+            Si vendés todo el stock
+          </p>
+
+        </div>
+
+
+        {/* GANANCIA REAL */}
+
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-emerald-100 p-6">
+
+          <p className="text-gray-500 font-semibold">
+            💰 Ganancia total
           </p>
 
           <p className="text-3xl font-black text-emerald-600 mt-2">
-            ${dinero(gananciaStockTotal)}
+            ${dinero(gananciaTotal)}
+          </p>
+
+          <p className="text-xs text-gray-400 mt-1">
+            {unidadesVendidas} unidades vendidas
           </p>
 
         </div>
@@ -478,17 +663,13 @@ function Inventario() {
           className="bg-gradient-to-br from-white to-violet-50 border-2 border-violet-100 p-8 rounded-2xl shadow-2xl mb-8"
         >
 
-          <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-black text-violet-900 mb-6">
 
-            <h3 className="text-2xl font-black text-violet-900">
+            {modoEdicion
+              ? '✏️ Editar Producto'
+              : '➕ Nuevo Producto'}
 
-              {modoEdicion
-                ? '✏️ Editar Producto'
-                : '➕ Nuevo Producto'}
-
-            </h3>
-
-          </div>
+          </h3>
 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -633,8 +814,6 @@ function Inventario() {
           </div>
 
 
-          {/* BOTÓN GUARDAR */}
-
           <div className="mt-6">
 
             <button
@@ -659,7 +838,7 @@ function Inventario() {
 
 
       {/* ======================================
-          TABLA
+          TABLA DE INVENTARIO
       ====================================== */}
 
       <div className="bg-white shadow-xl rounded-2xl overflow-x-auto border border-gray-100">
@@ -691,7 +870,7 @@ function Inventario() {
               </th>
 
               <th className="py-4 px-5">
-                Ganancia stock
+                Ganancia real
               </th>
 
               <th className="py-4 px-5">
@@ -727,27 +906,46 @@ function Inventario() {
               productosFiltrados.map(producto => {
 
                 const costo =
-                  Number(producto.costo || 0);
+                  Number(
+                    producto.costo || 0
+                  );
 
                 const precio =
-                  Number(producto.precio_venta || 0);
+                  Number(
+                    producto.precio_venta || 0
+                  );
 
                 const stock =
-                  Number(producto.stock_actual || 0);
+                  Number(
+                    producto.stock_actual || 0
+                  );
 
                 const ganancia =
-                  producto.ganancia_unitaria !== undefined
-                    ? Number(producto.ganancia_unitaria)
-                    : precio - costo;
+                  Number(
+                    producto.ganancia_unitaria ??
+                    (
+                      precio - costo
+                    )
+                  );
 
                 const gananciaStock =
-                  producto.ganancia_stock !== undefined
-                    ? Number(producto.ganancia_stock)
-                    : ganancia * stock;
+                  Number(
+                    producto.ganancia_stock ??
+                    (
+                      ganancia * stock
+                    )
+                  );
+
+                const gananciaReal =
+                  obtenerGananciaReal(
+                    producto.id_producto
+                  );
 
                 const stockBajo =
                   stock <=
-                  Number(producto.stock_minimo || 0);
+                  Number(
+                    producto.stock_minimo || 0
+                  );
 
                 return (
 
@@ -761,7 +959,10 @@ function Inventario() {
                     <td className="py-4 px-5">
 
                       <span className="inline-block px-3 py-1 rounded-full bg-violet-100 text-violet-700 font-bold text-xs">
-                        {producto.nombre_categoria || 'General'}
+
+                        {producto.nombre_categoria ||
+                          'General'}
+
                       </span>
 
                     </td>
@@ -796,7 +997,7 @@ function Inventario() {
                     </td>
 
 
-                    {/* GANANCIA UNITARIA */}
+                    {/* GANANCIA POR UNIDAD */}
 
                     <td className="py-4 px-5">
 
@@ -807,7 +1008,9 @@ function Inventario() {
                             : 'text-rose-600'
                         }`}
                       >
+
                         ${dinero(ganancia)}
+
                       </span>
 
                       <p className="text-xs text-gray-400">
@@ -817,16 +1020,18 @@ function Inventario() {
                     </td>
 
 
-                    {/* GANANCIA STOCK */}
+                    {/* GANANCIA REAL */}
 
                     <td className="py-4 px-5">
 
-                      <span className="font-black text-indigo-600">
-                        ${dinero(gananciaStock)}
+                      <span className="font-black text-emerald-600">
+
+                        ${dinero(gananciaReal)}
+
                       </span>
 
                       <p className="text-xs text-gray-400">
-                        stock actual
+                        ventas realizadas
                       </p>
 
                     </td>
@@ -848,6 +1053,7 @@ function Inventario() {
 
                       </span>
 
+
                       {stockBajo && (
 
                         <p className="text-xs text-rose-600 font-bold mt-1">
@@ -865,19 +1071,17 @@ function Inventario() {
 
                       <div className="flex justify-center gap-2">
 
-                        {/* EDITAR */}
-
                         <button
                           onClick={() =>
-                            editarProducto(producto)
+                            editarProducto(
+                              producto
+                            )
                           }
                           className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2 px-3 rounded-xl text-xs transition-all shadow-md hover:scale-105"
                         >
                           ✏️ Editar
                         </button>
 
-
-                        {/* ELIMINAR */}
 
                         <button
                           onClick={() =>
