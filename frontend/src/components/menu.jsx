@@ -23,7 +23,7 @@ function Menu() {
       <Link to="/inventario" style={linkStyle}>📦 Inventario</Link>
       <Link to="/caja" style={linkStyle}>🛒 Caja / Ventas</Link>
       <Link to="/gastos" style={linkStyle}>💸 Gastos</Link>
-      <Link to="/ventas" style={linkStyle}>📊 Ventas</Link>
+      <Link to="/venta" style={linkStyle}>📊 Ventas</Link>
     </nav>
   );
 }
