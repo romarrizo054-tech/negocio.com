@@ -841,6 +841,88 @@ app.get('/api/dashboard', (req, res) => {
 });
 
 // ==========================================
+// GANANCIAS TOTALES POR PRODUCTO
+// ==========================================
+
+app.get('/api/ganancias-productos', (req, res) => {
+
+    const { id_categoria } = req.query;
+
+    let filtro = '';
+
+    if (id_categoria) {
+        filtro = `AND p.id_categoria = ${db.escape(id_categoria)}`;
+    }
+
+    const sql = `
+        SELECT
+
+            p.id_producto,
+            p.nombre,
+            c.nombre AS nombre_categoria,
+
+            IFNULL(SUM(dv.cantidad), 0)
+                AS unidades_vendidas,
+
+            p.costo,
+
+            IFNULL(
+                SUM(
+                    (
+                        dv.precio_unitario - p.costo
+                    ) * dv.cantidad
+                ),
+                0
+            ) AS ganancia_total
+
+        FROM productos p
+
+        LEFT JOIN categorias c
+            ON p.id_categoria = c.id_categoria
+
+        LEFT JOIN detalle_ventas dv
+            ON p.id_producto = dv.id_producto
+
+        LEFT JOIN ventas v
+            ON dv.id_venta = v.id_venta
+
+        WHERE 1 = 1
+
+        ${filtro}
+
+        GROUP BY
+            p.id_producto,
+            p.nombre,
+            c.nombre,
+            p.costo
+
+        ORDER BY ganancia_total DESC
+    `;
+
+    db.query(
+        sql,
+        (err, resultados) => {
+
+            if (err) {
+
+                console.error(
+                    '❌ ERROR GANANCIAS PRODUCTOS:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados);
+        }
+    );
+});
+
+// ==========================================
 // ALERTAS DE STOCK
 // ==========================================
 
