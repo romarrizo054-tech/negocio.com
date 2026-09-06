@@ -4,7 +4,7 @@ import Inventario from './components/inventario';
 import Caja from './components/caja';
 import Dashboard from './components/dashboard';
 import Gastos from './components/gastos';
-import Ventas from './components/ventas';
+import Ventas from './components/venta';
 
 function App() {
   return (
