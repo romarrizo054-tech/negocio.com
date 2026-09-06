@@ -562,6 +562,126 @@ app.post('/api/ventas', (req, res) => {
 });
 
 // ==========================================
+// OBTENER TODAS LAS VENTAS
+// ==========================================
+
+app.get('/api/ventas', (req, res) => {
+
+    const sql = `
+        SELECT
+            v.id_venta,
+            v.fecha,
+            v.metodo_pago,
+            v.total,
+
+            COUNT(dv.id_detalle) AS cantidad_productos,
+
+            IFNULL(
+                SUM(dv.cantidad),
+                0
+            ) AS unidades_vendidas
+
+        FROM ventas v
+
+        LEFT JOIN detalle_ventas dv
+            ON v.id_venta = dv.id_venta
+
+        GROUP BY
+            v.id_venta,
+            v.fecha,
+            v.metodo_pago,
+            v.total
+
+        ORDER BY v.fecha DESC
+    `;
+
+    db.query(
+        sql,
+        (err, resultados) => {
+
+            if (err) {
+
+                console.error(
+                    '❌ ERROR OBTENIENDO VENTAS:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados);
+        }
+    );
+});
+
+// ==========================================
+// DETALLE DE UNA VENTA
+// ==========================================
+
+app.get('/api/ventas/:id', (req, res) => {
+
+    const idVenta = req.params.id;
+
+    const sql = `
+        SELECT
+            v.id_venta,
+            v.fecha,
+            v.metodo_pago,
+            v.total,
+
+            dv.id_detalle,
+            dv.id_producto,
+            p.nombre AS nombre_producto,
+            dv.cantidad,
+            dv.precio_unitario,
+
+            (
+                dv.precio_unitario *
+                dv.cantidad
+            ) AS subtotal
+
+        FROM ventas v
+
+        INNER JOIN detalle_ventas dv
+            ON v.id_venta = dv.id_venta
+
+        INNER JOIN productos p
+            ON dv.id_producto = p.id_producto
+
+        WHERE v.id_venta = ?
+
+        ORDER BY dv.id_detalle ASC
+    `;
+
+    db.query(
+        sql,
+        [idVenta],
+        (err, resultados) => {
+
+            if (err) {
+
+                console.error(
+                    '❌ ERROR DETALLE VENTA:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados);
+        }
+    );
+});
+
+// ==========================================
 // EDITAR PRODUCTO
 // ==========================================
 

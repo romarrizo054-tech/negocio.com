@@ -4,6 +4,7 @@ import Inventario from './components/inventario';
 import Caja from './components/caja';
 import Dashboard from './components/dashboard';
 import Gastos from './components/gastos';
+import Ventas from './components/ventas';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/caja" element={<Caja />} />
           <Route path="/gastos" element={<h2>Pantalla de Gastos y Pérdidas</h2>} />
+          <Route path="/ventas" element={<Ventas />} />
         </Routes>
       </div>
     </Router>
