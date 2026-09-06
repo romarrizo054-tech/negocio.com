@@ -46,9 +46,9 @@ const crearTablas = async () => {
 
     const tablas = [
 
-        // ------------------------------------------
+        // ==========================================
         // CATEGORÍAS
-        // ------------------------------------------
+        // ==========================================
 
         `
         CREATE TABLE IF NOT EXISTS categorias (
@@ -57,9 +57,9 @@ const crearTablas = async () => {
         )
         `,
 
-        // ------------------------------------------
+        // ==========================================
         // PRODUCTOS
-        // ------------------------------------------
+        // ==========================================
 
         `
         CREATE TABLE IF NOT EXISTS productos (
@@ -70,14 +70,15 @@ const crearTablas = async () => {
             precio_venta DECIMAL(10,2) NOT NULL,
             stock_actual INT NOT NULL,
             stock_minimo INT NOT NULL,
+
             FOREIGN KEY (id_categoria)
                 REFERENCES categorias(id_categoria)
         )
         `,
 
-        // ------------------------------------------
+        // ==========================================
         // VENTAS
-        // ------------------------------------------
+        // ==========================================
 
         `
         CREATE TABLE IF NOT EXISTS ventas (
@@ -88,9 +89,9 @@ const crearTablas = async () => {
         )
         `,
 
-        // ------------------------------------------
+        // ==========================================
         // DETALLE DE VENTAS
-        // ------------------------------------------
+        // ==========================================
 
         `
         CREATE TABLE IF NOT EXISTS detalle_ventas (
@@ -108,9 +109,9 @@ const crearTablas = async () => {
         )
         `,
 
-        // ------------------------------------------
+        // ==========================================
         // GASTOS
-        // ------------------------------------------
+        // ==========================================
 
         `
         CREATE TABLE IF NOT EXISTS movimientos_gastos (
@@ -120,6 +121,7 @@ const crearTablas = async () => {
             tipo VARCHAR(50) NOT NULL,
             descripcion TEXT NOT NULL,
             monto DECIMAL(10,2) NOT NULL
+        )
         `
     ];
 
@@ -136,15 +138,21 @@ const crearTablas = async () => {
 
 const insertarDatosIniciales = async () => {
 
-    // ------------------------------------------
+    // ==========================================
     // CATEGORÍAS
-    // ------------------------------------------
+    // ==========================================
 
     const categorias = [
         'General',
         'Joyas',
         'Perfumes',
-        'Maquillaje'
+        'Maquillaje',
+        'Indumentaria',
+        'Calzado',
+        'Accesorios',
+        'Hogar',
+        'Electrónica',
+        'Otros'
     ];
 
     for (const nombre of categorias) {
@@ -165,9 +173,9 @@ const insertarDatosIniciales = async () => {
 
     console.log('✅ Categorías base verificadas.');
 
-    // ------------------------------------------
+    // ==========================================
     // PRODUCTO DE PRUEBA
-    // ------------------------------------------
+    // ==========================================
 
     const [productos] = await db.promise().query(
         `
