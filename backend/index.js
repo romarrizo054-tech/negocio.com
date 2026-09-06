@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
 require('dotenv').config();
+
 const app = express();
 
 // ==========================================
@@ -52,7 +53,7 @@ const crearTablas = async () => {
         `
         CREATE TABLE IF NOT EXISTS categorias (
             id_categoria INT AUTO_INCREMENT PRIMARY KEY,
-            nombre VARCHAR(100) NOT NULL
+            nombre VARCHAR(100) NOT NULL UNIQUE
         )
         `,
 
@@ -119,7 +120,6 @@ const crearTablas = async () => {
             tipo VARCHAR(50) NOT NULL,
             descripcion TEXT NOT NULL,
             monto DECIMAL(10,2) NOT NULL
-        )
         `
     ];
 
@@ -136,42 +136,92 @@ const crearTablas = async () => {
 
 const insertarDatosIniciales = async () => {
 
-    // Categorías iniciales
-    await db.promise().query(`
-        INSERT IGNORE INTO categorias
-        (id_categoria, nombre)
-        VALUES
-        (1, 'General'),
-        (2, 'Indumentaria')
-    `);
+    // ------------------------------------------
+    // CATEGORÍAS
+    // ------------------------------------------
+
+    const categorias = [
+        'General',
+        'Joyas',
+        'Perfumes',
+        'Maquillaje'
+    ];
+
+    for (const nombre of categorias) {
+
+        await db.promise().query(
+            `
+            INSERT INTO categorias (nombre)
+            SELECT ?
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM categorias
+                WHERE nombre = ?
+            )
+            `,
+            [nombre, nombre]
+        );
+    }
 
     console.log('✅ Categorías base verificadas.');
 
-    // Producto de prueba
-    await db.promise().query(`
-        INSERT IGNORE INTO productos
-        (
-            id_producto,
-            id_categoria,
-            nombre,
-            costo,
-            precio_venta,
-            stock_actual,
-            stock_minimo
-        )
-        VALUES
-        (
-            1,
-            1,
-            'Producto de Prueba',
-            100.00,
-            150.00,
-            10,
-            2
-        )
-    `);
+    // ------------------------------------------
+    // PRODUCTO DE PRUEBA
+    // ------------------------------------------
 
-    console.log('✅ Producto base verificado.');
+    const [productos] = await db.promise().query(
+        `
+        SELECT id_producto
+        FROM productos
+        WHERE id_producto = 1
+        `
+    );
+
+    if (productos.length === 0) {
+
+        const [categoriaGeneral] = await db.promise().query(
+            `
+            SELECT id_categoria
+            FROM categorias
+            WHERE nombre = 'General'
+            LIMIT 1
+            `
+        );
+
+        const idCategoria =
+            categoriaGeneral.length > 0
+                ? categoriaGeneral[0].id_categoria
+                : 1;
+
+        await db.promise().query(
+            `
+            INSERT INTO productos
+            (
+                id_categoria,
+                nombre,
+                costo,
+                precio_venta,
+                stock_actual,
+                stock_minimo
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            [
+                idCategoria,
+                'Producto de Prueba',
+                100.00,
+                150.00,
+                10,
+                2
+            ]
+        );
+
+        console.log('✅ Producto base creado.');
+
+    } else {
+
+        console.log('✅ Producto base ya existe.');
+    }
 };
 
 // ==========================================
@@ -181,7 +231,13 @@ const insertarDatosIniciales = async () => {
 app.get('/api/categorias', (req, res) => {
 
     db.query(
-        'SELECT * FROM categorias',
+        `
+        SELECT
+            id_categoria,
+            nombre
+        FROM categorias
+        ORDER BY nombre ASC
+        `,
         (err, resultados) => {
 
             if (err) {
@@ -198,11 +254,6 @@ app.get('/api/categorias', (req, res) => {
                     sqlMessage: err.sqlMessage
                 });
             }
-
-            console.log(
-                '✅ Categorías obtenidas:',
-                resultados
-            );
 
             res.json(resultados);
         }
@@ -271,6 +322,7 @@ app.post('/api/productos', (req, res) => {
         stock_actual === undefined ||
         stock_minimo === undefined
     ) {
+
         return res.status(400).json({
             error: 'Faltan datos obligatorios del producto'
         });
@@ -386,6 +438,7 @@ app.post('/api/ventas', (req, res) => {
         !Array.isArray(detalles) ||
         detalles.length === 0
     ) {
+
         return res.status(400).json({
             error: 'Datos de venta incompletos'
         });
@@ -460,7 +513,6 @@ app.post('/api/ventas', (req, res) => {
                             });
                         }
 
-                        // Actualizar stock
                         if (!errDetalle) {
 
                             db.query(
@@ -498,6 +550,7 @@ app.post('/api/ventas', (req, res) => {
                                         pendientes === 0 &&
                                         !huboError
                                     ) {
+
                                         res.status(201).json({
                                             mensaje:
                                                 'Venta registrada con éxito',
@@ -536,6 +589,7 @@ app.post('/api/gastos', (req, res) => {
         !descripcion ||
         monto === undefined
     ) {
+
         return res.status(400).json({
             error: 'Faltan datos del gasto'
         });
