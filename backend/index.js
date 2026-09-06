@@ -1,167 +1,212 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-
+require('dotenv').config();
 const app = express();
+
+// ==========================================
+// CONFIGURACIÓN DEL SERVIDOR
+// ==========================================
 
 app.use(cors());
 app.use(express.json());
+
+const PORT = process.env.PORT || 3001;
 
 // ==========================================
 // CONEXIÓN A AIVEN MYSQL
 // ==========================================
 
-console.log(
-    'Intentando conectar a:',
-    process.env.DB_HOST,
-    'con usuario:',
-    process.env.DB_USER
-);
+console.log('==========================================');
+console.log('🔌 INICIANDO SERVIDOR');
+console.log('==========================================');
+
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_PORT:', process.env.DB_PORT);
 
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT),
+    port: Number(process.env.DB_PORT) || 3306,
     ssl: {
         rejectUnauthorized: false
-    },
-    multipleStatements: true
+    }
 });
 
 // ==========================================
 // CREACIÓN DE TABLAS
 // ==========================================
 
-const crearTablas = `
-    CREATE TABLE IF NOT EXISTS categorias (
-        id_categoria INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(100) NOT NULL
-    );
+const crearTablas = async () => {
 
-    CREATE TABLE IF NOT EXISTS productos (
-        id_producto INT AUTO_INCREMENT PRIMARY KEY,
-        id_categoria INT,
-        nombre VARCHAR(150) NOT NULL,
-        costo DECIMAL(10,2) NOT NULL,
-        precio_venta DECIMAL(10,2) NOT NULL,
-        stock_actual INT NOT NULL,
-        stock_minimo INT NOT NULL,
-        FOREIGN KEY (id_categoria)
-            REFERENCES categorias(id_categoria)
-    );
+    const tablas = [
 
-    CREATE TABLE IF NOT EXISTS ventas (
-        id_venta INT AUTO_INCREMENT PRIMARY KEY,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        metodo_pago VARCHAR(50) NOT NULL,
-        total DECIMAL(10,2) NOT NULL
-    );
+        // ------------------------------------------
+        // CATEGORÍAS
+        // ------------------------------------------
 
-    CREATE TABLE IF NOT EXISTS detalle_ventas (
-        id_detalle INT AUTO_INCREMENT PRIMARY KEY,
-        id_venta INT,
-        id_producto INT,
-        cantidad INT NOT NULL,
-        precio_unitario DECIMAL(10,2) NOT NULL,
-        FOREIGN KEY (id_venta)
-            REFERENCES ventas(id_venta),
-        FOREIGN KEY (id_producto)
-            REFERENCES productos(id_producto)
-    );
+        `
+        CREATE TABLE IF NOT EXISTS categorias (
+            id_categoria INT AUTO_INCREMENT PRIMARY KEY,
+            nombre VARCHAR(100) NOT NULL
+        )
+        `,
 
-    CREATE TABLE IF NOT EXISTS movimientos_gastos (
-        id_gasto INT AUTO_INCREMENT PRIMARY KEY,
-        id_categoria INT DEFAULT 1,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        tipo VARCHAR(50) NOT NULL,
-        descripcion TEXT NOT NULL,
-        monto DECIMAL(10,2) NOT NULL
-    );
-`;
+        // ------------------------------------------
+        // PRODUCTOS
+        // ------------------------------------------
 
-// ==========================================
-// INICIAR BASE DE DATOS
-// ==========================================
+        `
+        CREATE TABLE IF NOT EXISTS productos (
+            id_producto INT AUTO_INCREMENT PRIMARY KEY,
+            id_categoria INT,
+            nombre VARCHAR(150) NOT NULL,
+            costo DECIMAL(10,2) NOT NULL,
+            precio_venta DECIMAL(10,2) NOT NULL,
+            stock_actual INT NOT NULL,
+            stock_minimo INT NOT NULL,
+            FOREIGN KEY (id_categoria)
+                REFERENCES categorias(id_categoria)
+        )
+        `,
 
-db.connect((err) => {
+        // ------------------------------------------
+        // VENTAS
+        // ------------------------------------------
 
-    if (err) {
-        console.error('❌ Error conectando a Aiven:', err);
-        return;
+        `
+        CREATE TABLE IF NOT EXISTS ventas (
+            id_venta INT AUTO_INCREMENT PRIMARY KEY,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            metodo_pago VARCHAR(50) NOT NULL,
+            total DECIMAL(10,2) NOT NULL
+        )
+        `,
+
+        // ------------------------------------------
+        // DETALLE DE VENTAS
+        // ------------------------------------------
+
+        `
+        CREATE TABLE IF NOT EXISTS detalle_ventas (
+            id_detalle INT AUTO_INCREMENT PRIMARY KEY,
+            id_venta INT,
+            id_producto INT,
+            cantidad INT NOT NULL,
+            precio_unitario DECIMAL(10,2) NOT NULL,
+
+            FOREIGN KEY (id_venta)
+                REFERENCES ventas(id_venta),
+
+            FOREIGN KEY (id_producto)
+                REFERENCES productos(id_producto)
+        )
+        `,
+
+        // ------------------------------------------
+        // GASTOS
+        // ------------------------------------------
+
+        `
+        CREATE TABLE IF NOT EXISTS movimientos_gastos (
+            id_gasto INT AUTO_INCREMENT PRIMARY KEY,
+            id_categoria INT DEFAULT 1,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tipo VARCHAR(50) NOT NULL,
+            descripcion TEXT NOT NULL,
+            monto DECIMAL(10,2) NOT NULL
+        )
+        `
+    ];
+
+    for (const sql of tablas) {
+        await db.promise().query(sql);
     }
 
-    console.log('✅ Conectado exitosamente a Aiven MySQL');
+    console.log('✅ Tablas verificadas y listas.');
+};
 
-    db.query(crearTablas, (error) => {
+// ==========================================
+// DATOS INICIALES
+// ==========================================
 
-        if (error) {
-            console.error('❌ Error al crear las tablas:', error);
-            return;
-        }
+const insertarDatosIniciales = async () => {
 
-        console.log('✅ Tablas verificadas y listas');
+    // Categorías iniciales
+    await db.promise().query(`
+        INSERT IGNORE INTO categorias
+        (id_categoria, nombre)
+        VALUES
+        (1, 'General'),
+        (2, 'Indumentaria')
+    `);
 
-        // ==========================================
-        // DATOS INICIALES
-        // ==========================================
+    console.log('✅ Categorías base verificadas.');
 
-        db.query(
-            `INSERT IGNORE INTO categorias
-            (id_categoria, nombre)
-            VALUES
-            (1, 'General'),
-            (2, 'Indumentaria')`,
-            (err) => {
+    // Producto de prueba
+    await db.promise().query(`
+        INSERT IGNORE INTO productos
+        (
+            id_producto,
+            id_categoria,
+            nombre,
+            costo,
+            precio_venta,
+            stock_actual,
+            stock_minimo
+        )
+        VALUES
+        (
+            1,
+            1,
+            'Producto de Prueba',
+            100.00,
+            150.00,
+            10,
+            2
+        )
+    `);
 
-                if (err) {
-                    console.error('❌ Error insertando categorías:', err);
-                } else {
-                    console.log('✅ Categorías base verificadas');
-                }
-            }
-        );
-
-        db.query(
-            `INSERT IGNORE INTO productos
-            (id_producto, id_categoria, nombre, costo, precio_venta, stock_actual, stock_minimo)
-            VALUES
-            (1, 1, 'Producto de Prueba', 100.00, 150.00, 10, 2)`,
-            (err) => {
-
-                if (err) {
-                    console.error('❌ Error insertando producto:', err);
-                } else {
-                    console.log('✅ Producto base verificado');
-                }
-            }
-        );
-    }
-});
+    console.log('✅ Producto base verificado.');
+};
 
 // ==========================================
 // CATEGORÍAS
 // ==========================================
 
 app.get('/api/categorias', (req, res) => {
-    db.query('SELECT * FROM categorias', (err, resultados) => {
 
-        if (err) {
-            console.error('❌ ERROR MYSQL CATEGORIAS:', err);
+    db.query(
+        'SELECT * FROM categorias',
+        (err, resultados) => {
 
-            return res.status(500).json({
-                error: err.message,
-                code: err.code,
-                errno: err.errno,
-                sqlMessage: err.sqlMessage
-            });
+            if (err) {
+
+                console.error(
+                    '❌ ERROR MYSQL CATEGORIAS:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    errno: err.errno,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            console.log(
+                '✅ Categorías obtenidas:',
+                resultados
+            );
+
+            res.json(resultados);
         }
-
-        console.log('✅ Categorías:', resultados);
-
-        res.json(resultados);
-    });
+    );
 });
 
 // ==========================================
@@ -177,20 +222,31 @@ app.get('/api/productos', (req, res) => {
         FROM productos p
         LEFT JOIN categorias c
             ON p.id_categoria = c.id_categoria
+        ORDER BY p.id_producto DESC
     `;
 
-    db.query(sql, (err, resultados) => {
+    db.query(
+        sql,
+        (err, resultados) => {
 
-        if (err) {
-            console.error('❌ Error /api/productos:', err);
+            if (err) {
 
-            return res.status(500).json({
-                error: err.message
-            });
+                console.error(
+                    '❌ ERROR MYSQL PRODUCTOS:',
+                    err
+                );
+
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    errno: err.errno,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados);
         }
-
-        res.json(resultados);
-    });
+    );
 });
 
 // ==========================================
@@ -208,6 +264,18 @@ app.post('/api/productos', (req, res) => {
         stock_minimo
     } = req.body;
 
+    if (
+        !nombre ||
+        costo === undefined ||
+        precio_venta === undefined ||
+        stock_actual === undefined ||
+        stock_minimo === undefined
+    ) {
+        return res.status(400).json({
+            error: 'Faltan datos obligatorios del producto'
+        });
+    }
+
     const sql = `
         INSERT INTO productos
         (
@@ -224,7 +292,7 @@ app.post('/api/productos', (req, res) => {
     db.query(
         sql,
         [
-            id_categoria,
+            id_categoria || 1,
             nombre,
             costo,
             precio_venta,
@@ -234,15 +302,22 @@ app.post('/api/productos', (req, res) => {
         (err, resultado) => {
 
             if (err) {
-                console.error('❌ Error POST /api/productos:', err);
+
+                console.error(
+                    '❌ ERROR AL GUARDAR PRODUCTO:',
+                    err
+                );
 
                 return res.status(500).json({
-                    error: err.message
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
                 });
             }
 
             res.status(201).json({
-                mensaje: '¡Producto guardado exitosamente!'
+                mensaje: '¡Producto guardado exitosamente!',
+                id_producto: resultado.insertId
             });
         }
     );
@@ -267,11 +342,12 @@ app.delete('/api/productos/:id', (req, res) => {
             if (err) {
 
                 console.error(
-                    '❌ Error DELETE /api/productos:',
+                    '❌ ERROR AL ELIMINAR PRODUCTO:',
                     err
                 );
 
                 if (err.errno === 1451) {
+
                     return res.status(400).json({
                         error:
                             'No puedes eliminar un producto que ya tiene ventas registradas.'
@@ -279,7 +355,9 @@ app.delete('/api/productos/:id', (req, res) => {
                 }
 
                 return res.status(500).json({
-                    error: err.message
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
                 });
             }
 
@@ -302,6 +380,17 @@ app.post('/api/ventas', (req, res) => {
         detalles
     } = req.body;
 
+    if (
+        !metodo_pago ||
+        total === undefined ||
+        !Array.isArray(detalles) ||
+        detalles.length === 0
+    ) {
+        return res.status(400).json({
+            error: 'Datos de venta incompletos'
+        });
+    }
+
     const sqlVenta = `
         INSERT INTO ventas
         (metodo_pago, total)
@@ -316,21 +405,25 @@ app.post('/api/ventas', (req, res) => {
             if (err) {
 
                 console.error(
-                    '❌ Error registrando venta:',
+                    '❌ ERROR AL REGISTRAR VENTA:',
                     err
                 );
 
                 return res.status(500).json({
-                    error: err.message
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
                 });
             }
 
             const id_venta = resultadoVenta.insertId;
 
+            let pendientes = detalles.length;
+            let huboError = false;
+
             detalles.forEach(item => {
 
-                db.query(
-                    `
+                const sqlDetalle = `
                     INSERT INTO detalle_ventas
                     (
                         id_venta,
@@ -339,30 +432,87 @@ app.post('/api/ventas', (req, res) => {
                         precio_unitario
                     )
                     VALUES (?, ?, ?, ?)
-                    `,
+                `;
+
+                db.query(
+                    sqlDetalle,
                     [
                         id_venta,
                         item.id_producto,
                         item.cantidad,
                         item.precio_unitario
-                    ]
-                );
+                    ],
+                    (errDetalle) => {
 
-                db.query(
-                    `
-                    UPDATE productos
-                    SET stock_actual = stock_actual - ?
-                    WHERE id_producto = ?
-                    `,
-                    [
-                        item.cantidad,
-                        item.id_producto
-                    ]
-                );
-            });
+                        if (errDetalle && !huboError) {
 
-            res.status(201).json({
-                mensaje: 'Venta registrada con éxito'
+                            huboError = true;
+
+                            console.error(
+                                '❌ ERROR DETALLE VENTA:',
+                                errDetalle
+                            );
+
+                            return res.status(500).json({
+                                error: errDetalle.message,
+                                code: errDetalle.code,
+                                sqlMessage: errDetalle.sqlMessage
+                            });
+                        }
+
+                        // Actualizar stock
+                        if (!errDetalle) {
+
+                            db.query(
+                                `
+                                UPDATE productos
+                                SET stock_actual =
+                                    stock_actual - ?
+                                WHERE id_producto = ?
+                                `,
+                                [
+                                    item.cantidad,
+                                    item.id_producto
+                                ],
+                                (errStock) => {
+
+                                    if (errStock && !huboError) {
+
+                                        huboError = true;
+
+                                        console.error(
+                                            '❌ ERROR ACTUALIZANDO STOCK:',
+                                            errStock
+                                        );
+
+                                        return res.status(500).json({
+                                            error: errStock.message,
+                                            code: errStock.code,
+                                            sqlMessage: errStock.sqlMessage
+                                        });
+                                    }
+
+                                    pendientes--;
+
+                                    if (
+                                        pendientes === 0 &&
+                                        !huboError
+                                    ) {
+                                        res.status(201).json({
+                                            mensaje:
+                                                'Venta registrada con éxito',
+                                            id_venta
+                                        });
+                                    }
+                                }
+                            );
+
+                        } else {
+
+                            pendientes--;
+                        }
+                    }
+                );
             });
         }
     );
@@ -381,6 +531,16 @@ app.post('/api/gastos', (req, res) => {
         monto
     } = req.body;
 
+    if (
+        !tipo ||
+        !descripcion ||
+        monto === undefined
+    ) {
+        return res.status(400).json({
+            error: 'Faltan datos del gasto'
+        });
+    }
+
     const sql = `
         INSERT INTO movimientos_gastos
         (
@@ -395,7 +555,7 @@ app.post('/api/gastos', (req, res) => {
     db.query(
         sql,
         [
-            id_categoria,
+            id_categoria || 1,
             tipo,
             descripcion,
             monto
@@ -405,17 +565,20 @@ app.post('/api/gastos', (req, res) => {
             if (err) {
 
                 console.error(
-                    '❌ Error registrando gasto:',
+                    '❌ ERROR AL REGISTRAR GASTO:',
                     err
                 );
 
                 return res.status(500).json({
-                    error: err.message
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
                 });
             }
 
             res.status(201).json({
-                mensaje: 'Gasto registrado con éxito'
+                mensaje: 'Gasto registrado con éxito',
+                id_gasto: resultado.insertId
             });
         }
     );
@@ -427,50 +590,78 @@ app.post('/api/gastos', (req, res) => {
 
 app.get('/api/dashboard', (req, res) => {
 
-    const { id_categoria } = req.query;
+    const {
+        id_categoria
+    } = req.query;
 
-    const filtroProd = id_categoria
-        ? `AND p.id_categoria = ${db.escape(id_categoria)}`
-        : '';
+    let filtroProd = '';
+    let filtroGasto = '';
 
-    const filtroGasto = id_categoria
-        ? `AND id_categoria = ${db.escape(id_categoria)}`
-        : '';
+    if (id_categoria) {
+
+        filtroProd =
+            `AND p.id_categoria = ${db.escape(id_categoria)}`;
+
+        filtroGasto =
+            `AND id_categoria = ${db.escape(id_categoria)}`;
+    }
 
     const sql = `
         SELECT
 
             (
                 SELECT IFNULL(
-                    SUM(dv.precio_unitario * dv.cantidad),
+                    SUM(
+                        dv.precio_unitario *
+                        dv.cantidad
+                    ),
                     0
                 )
                 FROM detalle_ventas dv
+
                 JOIN ventas v
                     ON dv.id_venta = v.id_venta
+
                 JOIN productos p
                     ON dv.id_producto = p.id_producto
-                WHERE MONTH(v.fecha) = MONTH(CURRENT_DATE())
-                AND YEAR(v.fecha) = YEAR(CURRENT_DATE())
-                ${filtroProd}
+
+                WHERE
+                    MONTH(v.fecha) =
+                        MONTH(CURRENT_DATE())
+
+                    AND YEAR(v.fecha) =
+                        YEAR(CURRENT_DATE())
+
+                    ${filtroProd}
             ) AS ingresos_brutos,
 
             (
                 SELECT IFNULL(
                     SUM(
-                        (dv.precio_unitario - p.costo)
-                        * dv.cantidad
+                        (
+                            dv.precio_unitario -
+                            p.costo
+                        ) *
+                        dv.cantidad
                     ),
                     0
                 )
                 FROM detalle_ventas dv
+
                 JOIN ventas v
                     ON dv.id_venta = v.id_venta
+
                 JOIN productos p
                     ON dv.id_producto = p.id_producto
-                WHERE MONTH(v.fecha) = MONTH(CURRENT_DATE())
-                AND YEAR(v.fecha) = YEAR(CURRENT_DATE())
-                ${filtroProd}
+
+                WHERE
+                    MONTH(v.fecha) =
+                        MONTH(CURRENT_DATE())
+
+                    AND YEAR(v.fecha) =
+                        YEAR(CURRENT_DATE())
+
+                    ${filtroProd}
             ) AS ganancia_neta,
 
             (
@@ -479,28 +670,39 @@ app.get('/api/dashboard', (req, res) => {
                     0
                 )
                 FROM movimientos_gastos
-                WHERE MONTH(fecha) = MONTH(CURRENT_DATE())
-                AND YEAR(fecha) = YEAR(CURRENT_DATE())
-                ${filtroGasto}
+
+                WHERE
+                    MONTH(fecha) =
+                        MONTH(CURRENT_DATE())
+
+                    AND YEAR(fecha) =
+                        YEAR(CURRENT_DATE())
+
+                    ${filtroGasto}
             ) AS total_gastos
     `;
 
-    db.query(sql, (err, resultados) => {
+    db.query(
+        sql,
+        (err, resultados) => {
 
-        if (err) {
+            if (err) {
 
-            console.error(
-                '❌ Error /api/dashboard:',
-                err
-            );
+                console.error(
+                    '❌ ERROR DASHBOARD:',
+                    err
+                );
 
-            return res.status(500).json({
-                error: err.message
-            });
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados[0]);
         }
-
-        res.json(resultados[0]);
-    });
+    );
 });
 
 // ==========================================
@@ -509,11 +711,17 @@ app.get('/api/dashboard', (req, res) => {
 
 app.get('/api/alertas-stock', (req, res) => {
 
-    const { id_categoria } = req.query;
+    const {
+        id_categoria
+    } = req.query;
 
-    const filtro = id_categoria
-        ? `AND id_categoria = ${db.escape(id_categoria)}`
-        : '';
+    let filtro = '';
+
+    if (id_categoria) {
+
+        filtro =
+            `AND id_categoria = ${db.escape(id_categoria)}`;
+    }
 
     const sql = `
         SELECT
@@ -523,32 +731,97 @@ app.get('/api/alertas-stock', (req, res) => {
         FROM productos
         WHERE stock_actual <= stock_minimo
         ${filtro}
+        ORDER BY stock_actual ASC
     `;
 
-    db.query(sql, (err, resultados) => {
+    db.query(
+        sql,
+        (err, resultados) => {
 
-        if (err) {
+            if (err) {
 
-            console.error(
-                '❌ Error /api/alertas-stock:',
-                err
-            );
+                console.error(
+                    '❌ ERROR ALERTAS STOCK:',
+                    err
+                );
 
-            return res.status(500).json({
-                error: err.message
-            });
+                return res.status(500).json({
+                    error: err.message,
+                    code: err.code,
+                    sqlMessage: err.sqlMessage
+                });
+            }
+
+            res.json(resultados);
         }
+    );
+});
 
-        res.json(resultados);
+// ==========================================
+// RUTA DE PRUEBA
+// ==========================================
+
+app.get('/', (req, res) => {
+
+    res.json({
+        mensaje: '🚀 API negocio.com funcionando correctamente',
+        estado: 'OK'
     });
 });
 
 // ==========================================
-// SERVIDOR
+// INICIAR SERVIDOR
 // ==========================================
 
-const PORT = process.env.PORT || 3001;
+const iniciarServidor = async () => {
 
-app.listen(PORT, () => {
-    console.log(` Servidor corriendo en el puerto ${PORT}`);
-});
+    try {
+
+        console.log('🔌 Conectando a Aiven MySQL...');
+
+        await db.promise().connect();
+
+        console.log(
+            '✅ ¡Conectado exitosamente a Aiven MySQL!'
+        );
+
+        console.log('📦 Verificando tablas...');
+
+        await crearTablas();
+
+        console.log('🌱 Insertando datos iniciales...');
+
+        await insertarDatosIniciales();
+
+        app.listen(PORT, () => {
+
+            console.log('==========================================');
+            console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+            console.log('==========================================');
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            '=========================================='
+        );
+
+        console.error(
+            '❌ ERROR INICIANDO EL SERVIDOR'
+        );
+
+        console.error(
+            '=========================================='
+        );
+
+        console.error('Mensaje:', error.message);
+        console.error('Código:', error.code);
+        console.error('Número:', error.errno);
+        console.error('SQL:', error.sqlMessage);
+
+        process.exit(1);
+    }
+};
+
+iniciarServidor();
