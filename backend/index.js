@@ -146,7 +146,8 @@ const insertarDatosIniciales = async () => {
         'General',
         'Joyas',
         'Perfumes',
-        'Maquillaje'
+        'Maquillaje',
+        'comida'
     ];
 
     for (const nombre of categorias) {
