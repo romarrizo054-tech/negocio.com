@@ -17,25 +17,53 @@ function Ventas() {
   // ==========================================
 
   const obtenerVentas = async () => {
-    try {
-      setCargando(true);
+  try {
+    setCargando(true);
 
-      const res = await axios.get(`${API_URL}/ventas`);
+    const res = await axios.get(`${API_URL}/ventas`);
 
-      setVentas(res.data);
-    } catch (error) {
-      console.error('Error obteniendo ventas:', error);
+    const ventasBase = res.data;
 
-      alert('No se pudieron obtener las ventas.');
-    } finally {
-      setCargando(false);
-    }
-  };
+    // Obtener los productos de cada venta
+    const ventasConProductos = await Promise.all(
+      ventasBase.map(async (venta) => {
+        try {
+          const detalleRes = await axios.get(
+            `${API_URL}/ventas/${venta.id_venta}`
+          );
 
-  useEffect(() => {
-    obtenerVentas();
-  }, []);
+          const productos = detalleRes.data
+            .map((item) => item.nombre_producto)
+            .filter(Boolean);
 
+          return {
+            ...venta,
+            productos
+          };
+        } catch (error) {
+          console.error(
+            `Error obteniendo productos de la venta #${venta.id_venta}:`,
+            error
+          );
+
+          return {
+            ...venta,
+            productos: []
+          };
+        }
+      })
+    );
+
+    setVentas(ventasConProductos);
+
+  } catch (error) {
+    console.error('Error obteniendo ventas:', error);
+
+    alert('No se pudieron obtener las ventas.');
+  } finally {
+    setCargando(false);
+  }
+};
   // ==========================================
   // VER DETALLE
   // ==========================================
@@ -565,11 +593,36 @@ function Ventas() {
 
                   </td>
 
-                  {/* PRODUCTOS */}
+                 {/* PRODUCTOS */}
 
-                  <td className="py-4 px-6 font-semibold">
-                    {venta.cantidad_productos}
-                  </td>
+<td className="py-4 px-6">
+
+  <div className="flex flex-col gap-1">
+
+    {venta.productos && venta.productos.length > 0 ? (
+
+      venta.productos.map((producto, index) => (
+
+        <span
+          key={`${venta.id_venta}-${index}`}
+          className="font-semibold text-gray-800"
+        >
+          🛍️ {producto}
+        </span>
+
+      ))
+
+    ) : (
+
+      <span className="text-gray-400">
+        Sin productos
+      </span>
+
+    )}
+
+  </div>
+
+</td>
 
                   {/* UNIDADES */}
 
