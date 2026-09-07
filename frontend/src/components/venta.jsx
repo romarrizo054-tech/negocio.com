@@ -56,6 +56,7 @@ function Ventas() {
 
     setVentas(ventasConProductos);
 
+
   } catch (error) {
     console.error('Error obteniendo ventas:', error);
 
@@ -64,6 +65,14 @@ function Ventas() {
     setCargando(false);
   }
 };
+
+// ==========================================
+// CARGAR VENTAS AL INICIAR
+// ==========================================
+
+useEffect(() => {
+  obtenerVentas();
+}, []);
   // ==========================================
   // VER DETALLE
   // ==========================================
