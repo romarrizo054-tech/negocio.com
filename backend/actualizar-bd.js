@@ -25,7 +25,8 @@ db.connect((err) => {
     const sql = `
         ALTER TABLE ventas
         ADD COLUMN cliente_fiado VARCHAR(150) NULL,
-        ADD COLUMN estado_fiado VARCHAR(30) NULL DEFAULT NULL
+        ADD COLUMN estado_fiado VARCHAR(30) NULL DEFAULT NULL,
+        ADD COLUMN cliente VARCHAR(150) DEFAULT 'Cliente General'
     `;
 
     db.query(sql, (err) => {
