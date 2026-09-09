@@ -79,7 +79,7 @@ async function crearTablas() {
             total DECIMAL(10,2) NOT NULL,
             cliente VARCHAR(150) NOT NULL DEFAULT 'Cliente General',
             cliente_fiado VARCHAR(150) NULL,
-            estado_fiado VARCHAR(30) NULL DEFAULT NULL
+                estado_fiado VARCHAR(30) NULL DEFAULT NULL
         )
     `);
 
