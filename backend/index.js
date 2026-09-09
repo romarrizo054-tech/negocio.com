@@ -70,7 +70,7 @@ async function crearTablas() {
         )
     `);
 
-    // VENTAS (con campo cliente añadido)
+    // VENTAS
     await db.query(`
         CREATE TABLE IF NOT EXISTS ventas (
             id_venta INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,9 +79,14 @@ async function crearTablas() {
             total DECIMAL(10,2) NOT NULL,
             cliente VARCHAR(150) NOT NULL DEFAULT 'Cliente General',
             cliente_fiado VARCHAR(150) NULL,
-                estado_fiado VARCHAR(30) NULL DEFAULT NULL
+            estado_fiado VARCHAR(30) NULL DEFAULT NULL
         )
     `);
+
+    // ASEGURAR COLUMNAS DE FORMA SEGURA (COMPATIBLE CON MYSQL)
+    try { await db.query(`ALTER TABLE ventas ADD COLUMN cliente VARCHAR(150) NOT NULL DEFAULT 'Cliente General'`); } catch (e) {}
+    try { await db.query(`ALTER TABLE ventas ADD COLUMN cliente_fiado VARCHAR(150) NULL`); } catch (e) {}
+    try { await db.query(`ALTER TABLE ventas ADD COLUMN estado_fiado VARCHAR(30) NULL DEFAULT NULL`); } catch (e) {}
 
     // DETALLE DE VENTAS
     await db.query(`
