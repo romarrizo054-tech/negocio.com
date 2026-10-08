@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // =====================================================
-// CONEXIÓN A MYSQL / AIVEN
+// CONEXIÓN A LA BASE DE DATOS (TIDB CLOUD)
 // =====================================================
 
 console.log("==========================================");
@@ -26,9 +26,8 @@ console.log("DB_HOST:", process.env.DB_HOST);
 console.log("DB_USER:", process.env.DB_USER);
 console.log("DB_NAME:", process.env.DB_NAME);
 console.log("DB_PORT:", process.env.DB_PORT);
-const mysql = require('mysql2');
 
-const pool = mysql.createPool({
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT) || 4000,
   user: process.env.DB_USER,
@@ -38,16 +37,13 @@ const pool = mysql.createPool({
     minVersion: 'TLSv1.2',
     rejectUnauthorized: true
   }
-});
-
-module.exports = pool;
+}).promise();
 
 // =====================================================
 // CREAR TABLAS
 // =====================================================
 
 async function crearTablas() {
-
     // CATEGORÍAS
     await db.query(`
         CREATE TABLE IF NOT EXISTS categorias (
@@ -84,7 +80,7 @@ async function crearTablas() {
         )
     `);
 
-    // ASEGURAR COLUMNAS DE FORMA SEGURA (COMPATIBLE CON MYSQL)
+    // ASEGURAR COLUMNAS DE FORMA SEGURA
     try { await db.query(`ALTER TABLE ventas ADD COLUMN cliente VARCHAR(150) NOT NULL DEFAULT 'Cliente General'`); } catch (e) {}
     try { await db.query(`ALTER TABLE ventas ADD COLUMN cliente_fiado VARCHAR(150) NULL`); } catch (e) {}
     try { await db.query(`ALTER TABLE ventas ADD COLUMN estado_fiado VARCHAR(30) NULL DEFAULT NULL`); } catch (e) {}
@@ -747,9 +743,9 @@ app.get("/api/alertas-stock", async (req, res) => {
 
 async function iniciarServidor() {
     try {
-        console.log("🔌 Conectando a Aiven MySQL...");
+        console.log("🔌 Conectando a TiDB Cloud...");
         await db.query("SELECT 1");
-        console.log("✅ ¡Conectado exitosamente a Aiven MySQL!");
+        console.log("✅ ¡Conectado exitosamente a TiDB Cloud!");
 
         console.log("📦 Verificando tablas...");
         await crearTablas();
