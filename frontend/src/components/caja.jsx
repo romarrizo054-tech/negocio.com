@@ -57,13 +57,12 @@ function Caja() {
   // FILTRAR PRODUCTOS
   // ==========================================
 
-  const productosFiltrados = categoriaSeleccionada
-    ? productos.filter(
-        p =>
-          p.id_categoria ===
-          parseInt(categoriaSeleccionada)
-      )
-    : productos;
+  const productosFiltrados = productos.filter(
+    p =>
+      Number(p.stock_actual) > 0 &&
+      (!categoriaSeleccionada ||
+        p.id_categoria === parseInt(categoriaSeleccionada))
+  );
 
   // ==========================================
   // AGREGAR PRODUCTO AL CARRITO
