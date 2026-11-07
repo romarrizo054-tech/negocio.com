@@ -584,8 +584,18 @@ app.post("/api/gastos", async (req, res) => {
     try {
         const { id_categoria, tipo, descripcion, monto } = req.body;
 
-        if (!tipo || !descripcion || monto === undefined) {
-            return res.status(400).json({ error: "Faltan datos del gasto" });
+        if (
+            typeof tipo !== "string" ||
+            !tipo.trim() ||
+            typeof descripcion !== "string" ||
+            !descripcion.trim() ||
+            monto === undefined ||
+            monto === null ||
+            monto === "" ||
+            !Number.isFinite(Number(monto)) ||
+            Number(monto) < 0
+        ) {
+            return res.status(400).json({ error: "Completá todos los datos del gasto con valores válidos" });
         }
 
         const [resultado] = await db.query(`
@@ -593,8 +603,8 @@ app.post("/api/gastos", async (req, res) => {
             VALUES (?, ?, ?, ?)
         `, [
             id_categoria || 1,
-            tipo,
-            descripcion,
+            tipo.trim(),
+            descripcion.trim(),
             Number(monto)
         ]);
 
@@ -604,6 +614,83 @@ app.post("/api/gastos", async (req, res) => {
         });
     } catch (error) {
         console.error("❌ ERROR REGISTRANDO GASTO:", error);
+        res.status(500).json({ error: error.message, code: error.code, sqlMessage: error.sqlMessage });
+    }
+});
+
+app.put("/api/gastos/:id", async (req, res) => {
+    try {
+        const idGasto = Number(req.params.id);
+        const { id_categoria, tipo, descripcion, monto } = req.body;
+
+        if (!Number.isInteger(idGasto) || idGasto <= 0) {
+            return res.status(400).json({ error: "El identificador del gasto no es válido" });
+        }
+
+        if (
+            !Number.isInteger(Number(id_categoria)) ||
+            Number(id_categoria) <= 0 ||
+            typeof tipo !== "string" ||
+            !tipo.trim() ||
+            typeof descripcion !== "string" ||
+            !descripcion.trim() ||
+            monto === undefined ||
+            monto === null ||
+            monto === "" ||
+            !Number.isFinite(Number(monto)) ||
+            Number(monto) < 0
+        ) {
+            return res.status(400).json({ error: "Faltan datos válidos del gasto" });
+        }
+
+        const [existentes] = await db.query(
+            "SELECT id_gasto FROM movimientos_gastos WHERE id_gasto = ?",
+            [idGasto]
+        );
+
+        if (existentes.length === 0) {
+            return res.status(404).json({ error: "No se encontró el gasto" });
+        }
+
+        await db.query(`
+            UPDATE movimientos_gastos
+            SET id_categoria = ?, tipo = ?, descripcion = ?, monto = ?
+            WHERE id_gasto = ?
+        `, [
+            id_categoria,
+            tipo.trim(),
+            descripcion.trim(),
+            Number(monto),
+            idGasto
+        ]);
+
+        res.json({ mensaje: "Gasto actualizado correctamente" });
+    } catch (error) {
+        console.error("❌ ERROR ACTUALIZANDO GASTO:", error);
+        res.status(500).json({ error: error.message, code: error.code, sqlMessage: error.sqlMessage });
+    }
+});
+
+app.delete("/api/gastos/:id", async (req, res) => {
+    try {
+        const idGasto = Number(req.params.id);
+
+        if (!Number.isInteger(idGasto) || idGasto <= 0) {
+            return res.status(400).json({ error: "El identificador del gasto no es válido" });
+        }
+
+        const [resultado] = await db.query(
+            "DELETE FROM movimientos_gastos WHERE id_gasto = ?",
+            [idGasto]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ error: "No se encontró el gasto" });
+        }
+
+        res.json({ mensaje: "Gasto eliminado correctamente" });
+    } catch (error) {
+        console.error("❌ ERROR ELIMINANDO GASTO:", error);
         res.status(500).json({ error: error.message, code: error.code, sqlMessage: error.sqlMessage });
     }
 });

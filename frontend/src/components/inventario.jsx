@@ -14,6 +14,7 @@ function Inventario() {
   const [gananciasProductos, setGananciasProductos] = useState([]);
 
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [busquedaProducto, setBusquedaProducto] = useState('');
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -344,13 +345,27 @@ function Inventario() {
   // FILTRO DE PRODUCTOS
   // ==========================================
 
-  const productosFiltrados = categoriaFiltro
-    ? productos.filter(
-        p =>
-          Number(p.id_categoria) ===
-          Number(categoriaFiltro)
-      )
-    : productos;
+  const terminoBusqueda = busquedaProducto.trim().toLocaleLowerCase('es-AR');
+
+  const productosFiltrados = productos.filter(producto => {
+    const coincideCategoria =
+      !categoriaFiltro ||
+      Number(producto.id_categoria) === Number(categoriaFiltro);
+    const coincideBusqueda =
+      !terminoBusqueda ||
+      String(producto.nombre || '')
+        .toLocaleLowerCase('es-AR')
+        .includes(terminoBusqueda);
+
+    return coincideCategoria && coincideBusqueda;
+  });
+
+  const idsProductosFiltrados = new Set(
+    productosFiltrados.map(producto => Number(producto.id_producto))
+  );
+  const gananciasProductosFiltradas = gananciasProductos.filter(producto =>
+    idsProductosFiltrados.has(Number(producto.id_producto))
+  );
 
 
   // ==========================================
@@ -411,7 +426,7 @@ function Inventario() {
   // ==========================================
 
   const gananciaTotal =
-    gananciasProductos.reduce(
+    gananciasProductosFiltradas.reduce(
       (total, producto) =>
         total +
         Number(
@@ -426,7 +441,7 @@ function Inventario() {
   // ==========================================
 
   const unidadesVendidas =
-    gananciasProductos.reduce(
+    gananciasProductosFiltradas.reduce(
       (total, producto) =>
         total +
         Number(
@@ -509,6 +524,15 @@ function Inventario() {
 
 
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+
+            <input
+              type="search"
+              value={busquedaProducto}
+              onChange={e => setBusquedaProducto(e.target.value)}
+              placeholder="Buscar producto..."
+              aria-label="Buscar producto en inventario"
+              className="w-full sm:w-48 p-3 border-2 border-white/30 rounded-xl shadow-md font-semibold text-indigo-900 bg-white/90 placeholder:text-indigo-400 focus:outline-none focus:ring-4 focus:ring-violet-300"
+            />
 
             {/* FILTRO */}
 
@@ -896,7 +920,9 @@ function Inventario() {
                   colSpan="8"
                   className="py-12 text-center text-gray-500"
                 >
-                  📦 No hay productos en esta categoría.
+                  {terminoBusqueda
+                    ? '🔎 No se encontraron productos con esa búsqueda.'
+                    : '📦 No hay productos en esta categoría.'}
                 </td>
 
               </tr>

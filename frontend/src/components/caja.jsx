@@ -8,6 +8,7 @@ function Caja() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+  const [busquedaProducto, setBusquedaProducto] = useState('');
   const [carrito, setCarrito] = useState([]);
 
   const [metodoPago, setMetodoPago] = useState('Efectivo');
@@ -57,11 +58,14 @@ function Caja() {
   // FILTRAR PRODUCTOS
   // ==========================================
 
-  const productosFiltrados = productos.filter(
-    p =>
-      Number(p.stock_actual) > 0 &&
-      (!categoriaSeleccionada ||
-        p.id_categoria === parseInt(categoriaSeleccionada))
+  const terminoBusqueda = busquedaProducto.trim().toLocaleLowerCase('es-AR');
+
+  const productosFiltrados = productos.filter(p =>
+    Number(p.stock_actual) > 0 &&
+    (!categoriaSeleccionada ||
+      Number(p.id_categoria) === Number(categoriaSeleccionada)) &&
+    (!terminoBusqueda ||
+      String(p.nombre || '').toLocaleLowerCase('es-AR').includes(terminoBusqueda))
   );
 
   // ==========================================
@@ -561,6 +565,18 @@ function Caja() {
 
           </label>
 
+          <input
+            type="search"
+            value={busquedaProducto}
+            onChange={e => {
+              setBusquedaProducto(e.target.value);
+              setProductoSeleccionado('');
+            }}
+            placeholder="Buscar producto..."
+            aria-label="Buscar producto para la venta"
+            className="w-full p-3 mb-3 border-2 border-cyan-100 rounded-xl focus:ring-4 focus:ring-cyan-200 focus:outline-none bg-white font-semibold text-gray-700"
+          />
+
           <select
 
             value={
@@ -582,6 +598,12 @@ function Caja() {
               -- Elegí un artículo --
 
             </option>
+
+            {productosFiltrados.length === 0 && (
+              <option value="" disabled>
+                No hay productos disponibles
+              </option>
+            )}
 
             {productosFiltrados.map(
               p => (
