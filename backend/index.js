@@ -122,7 +122,7 @@ async function crearTablas() {
 // DATOS INICIALES
 // =====================================================
 
-async function insertarDatosIniciales() {
+async function insertarCategoriasIniciales() {
     const categorias = ["General", "Joyas", "Perfumes", "Maquillaje"];
 
     for (const nombre of categorias) {
@@ -136,27 +136,6 @@ async function insertarDatosIniciales() {
     }
 
     console.log("✅ Categorías base verificadas:", categorias);
-
-    const [productos] = await db.query(`
-        SELECT id_producto FROM productos WHERE id_producto = 1 LIMIT 1
-    `);
-
-    if (productos.length === 0) {
-        const [categoria] = await db.query(`
-            SELECT id_categoria FROM categorias WHERE nombre = 'General' LIMIT 1
-        `);
-
-        const idCategoria = categoria.length > 0 ? categoria[0].id_categoria : 1;
-
-        await db.query(`
-            INSERT INTO productos (id_categoria, nombre, costo, precio_venta, stock_actual, stock_minimo)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [idCategoria, "Producto de Prueba", 100, 150, 10, 2]);
-
-        console.log("✅ Producto base creado.");
-    } else {
-        console.log("✅ Producto base ya existe.");
-    }
 }
 
 // =====================================================
@@ -837,8 +816,8 @@ async function iniciarServidor() {
         console.log("📦 Verificando tablas...");
         await crearTablas();
 
-        console.log("🌱 Insertando datos iniciales...");
-        await insertarDatosIniciales();
+        console.log("🌱 Verificando categorías iniciales...");
+        await insertarCategoriasIniciales();
 
         app.listen(PORT, () => {
             console.log("==========================================");
