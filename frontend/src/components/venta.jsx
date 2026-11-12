@@ -117,6 +117,8 @@ useEffect(() => {
       setVentaEditando({
         ...venta,
 
+        cliente: venta.cliente || venta.cliente_fiado || '',
+
         cliente_fiado: venta.cliente_fiado || '',
 
         estado_fiado:
@@ -948,7 +950,7 @@ useEffect(() => {
 
                       cliente_fiado:
                         e.target.value === 'Fiado'
-                          ? ventaEditando.cliente_fiado
+                          ? ventaEditando.cliente_fiado || ventaEditando.cliente
                           : '',
 
                       estado_fiado:
@@ -980,33 +982,32 @@ useEffect(() => {
 
               </div>
 
-              {/* CLIENTE FIADO */}
+              {/* CLIENTE */}
 
-              {ventaEditando.metodo_pago === 'Fiado' && (
+              <div className="mb-6 bg-blue-50 border-2 border-blue-100 rounded-2xl p-5">
 
-                <div className="mb-6 bg-red-50 border-2 border-red-100 rounded-2xl p-5">
-
-                  <label className="block text-sm font-bold text-red-700 mb-2">
+                  <label className="block text-sm font-bold text-blue-700 mb-2">
                     👤 Nombre del cliente
                   </label>
 
                   <input
                     type="text"
-                    value={ventaEditando.cliente_fiado}
+                    value={ventaEditando.cliente || ''}
                     onChange={(e) =>
                       setVentaEditando({
                         ...ventaEditando,
+                        cliente: e.target.value,
                         cliente_fiado:
-                          e.target.value
+                          ventaEditando.metodo_pago === 'Fiado'
+                            ? e.target.value
+                            : ventaEditando.cliente_fiado
                       })
                     }
-                    placeholder="Ej: María, Juan, etc."
-                    className="w-full border-2 border-red-200 rounded-xl p-3 focus:outline-none focus:border-red-500"
+                    placeholder="Nombre del cliente (opcional)"
+                    className="w-full border-2 border-blue-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"
                   />
 
-                </div>
-
-              )}
+              </div>
 
               {/* PRODUCTOS */}
 
