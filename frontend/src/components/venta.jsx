@@ -201,6 +201,8 @@ useEffect(() => {
         calcularTotalEdicion();
 
       const datos = {
+        cliente: ventaEditando.cliente || null,
+
         metodo_pago:
           ventaEditando.metodo_pago,
 
@@ -365,6 +367,7 @@ useEffect(() => {
       if (!termino) return true;
 
       const campos = [
+        venta.cliente,
         venta.cliente_fiado,
         ...(venta.productos || [])
       ];
@@ -615,7 +618,7 @@ useEffect(() => {
                       <div>
 
                         <p className="font-bold text-gray-800">
-                          {venta.cliente_fiado || 'Sin nombre'}
+                          {venta.cliente_fiado || venta.cliente || 'Sin nombre'}
                         </p>
 
                         {venta.estado_fiado === 'pagado' ? (
@@ -635,11 +638,9 @@ useEffect(() => {
                       </div>
 
                     ) : (
-
-                      <span className="text-gray-400">
-                        -
+                      <span className="font-semibold text-gray-800">
+                        {venta.cliente || '-'}
                       </span>
-
                     )}
 
                   </td>

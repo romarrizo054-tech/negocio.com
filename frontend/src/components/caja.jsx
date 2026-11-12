@@ -370,6 +370,9 @@ function Caja() {
             metodo_pago:
               metodoPago,
 
+            cliente:
+              clienteFiado.trim() || null,
+
             total:
               totalVenta,
 
@@ -878,15 +881,6 @@ function Caja() {
                   e.target.value
                 );
 
-                if (
-                  e.target.value !==
-                  'Fiado'
-                ) {
-
-                  setClienteFiado('');
-
-                }
-
               }}
 
               className="w-full p-3 border-2 border-blue-200 rounded-xl focus:ring-4 focus:ring-blue-300 font-bold text-blue-900 bg-white"
@@ -928,13 +922,11 @@ function Caja() {
           </div>
 
 
-          {/* CLIENTE FIADO */}
-
-          {metodoPago === 'Fiado' && (
+          {/* CLIENTE */}
 
             <div>
 
-              <label className="font-extrabold text-orange-900 mb-2 block">
+              <label className="font-extrabold text-blue-900 mb-2 block">
 
                 👤 Cliente:
 
@@ -954,15 +946,13 @@ function Caja() {
                   )
                 }
 
-                placeholder="Nombre del cliente"
+                placeholder="Nombre del cliente (opcional)"
 
-                className="w-full p-3 border-2 border-orange-200 rounded-xl focus:ring-4 focus:ring-orange-300 focus:outline-none bg-white font-semibold"
+                className="w-full p-3 border-2 border-blue-200 rounded-xl focus:ring-4 focus:ring-blue-300 focus:outline-none bg-white font-semibold"
 
               />
 
             </div>
-
-          )}
 
         </div>
 
