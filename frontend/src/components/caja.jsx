@@ -14,6 +14,7 @@ function Caja() {
   const [metodoPago, setMetodoPago] = useState('Efectivo');
 
   const [clienteFiado, setClienteFiado] = useState('');
+  const [comprobante, setComprobante] = useState(null);
 
   const [productoSeleccionado, setProductoSeleccionado] = useState('');
   const [cantidad, setCantidad] = useState(1);
@@ -363,7 +364,7 @@ function Caja() {
 
       try {
 
-        await axios.post(
+        const ventaRes = await axios.post(
           `${API_URL}/ventas`,
           {
 
@@ -392,11 +393,14 @@ function Caja() {
           }
         );
 
-        alert(
-          metodoPago === 'Fiado'
-            ? `✅ Fiado registrado para ${clienteFiado}`
-            : '✅ ¡Venta registrada con éxito!'
-        );
+        setComprobante({
+          id: ventaRes.data.id_venta,
+          cliente: clienteFiado.trim() || 'Cliente General',
+          metodoPago,
+          fecha: new Date(),
+          total: totalVenta,
+          productos: carrito.map((item) => ({ ...item }))
+        });
 
         // ==========================================
         // LIMPIAR
@@ -461,6 +465,115 @@ function Caja() {
       }
     );
 
+  };
+
+  const textoComprobante = comprobante
+    ? [
+        `🧾 *Comprobante de compra${comprobante.id ? ` #${comprobante.id}` : ''}*`,
+        `Fecha: ${comprobante.fecha.toLocaleString('es-AR')}`,
+        `Cliente: ${comprobante.cliente}`,
+        '',
+        ...comprobante.productos.map((item) =>
+          `• ${item.nombre} x${item.cantidad} — $${dinero(item.subtotal)}`
+        ),
+        '',
+        `Total: $${dinero(comprobante.total)}`,
+        `Pago: ${comprobante.metodoPago}`
+      ].join('\n')
+    : '';
+
+  const generarImagenComprobante = async () => {
+    const ancho = 720;
+    const alto = 440 + comprobante.productos.length * 54;
+    const canvas = document.createElement('canvas');
+    canvas.width = ancho;
+    canvas.height = alto;
+    const contexto = canvas.getContext('2d');
+
+    contexto.fillStyle = '#ffffff';
+    contexto.fillRect(0, 0, ancho, alto);
+    contexto.fillStyle = '#cbb8e6';
+    contexto.fillRect(0, 0, ancho, 190);
+
+    const logo = new Image();
+    logo.src = '/logo-emprendimiento.jpeg';
+    await new Promise((resolve, reject) => {
+      logo.onload = resolve;
+      logo.onerror = reject;
+    });
+    contexto.drawImage(logo, 55, 300, 970, 430, 190, 20, 340, 150);
+
+    contexto.textAlign = 'center';
+    contexto.fillStyle = '#29213a';
+    contexto.font = 'bold 30px Arial';
+    contexto.fillText(`Comprobante${comprobante.id ? ` #${comprobante.id}` : ''}`, ancho / 2, 230);
+    contexto.font = '20px Arial';
+    contexto.fillText(comprobante.fecha.toLocaleString('es-AR'), ancho / 2, 265);
+
+    contexto.textAlign = 'left';
+    contexto.fillStyle = '#333333';
+    contexto.font = 'bold 22px Arial';
+    contexto.fillText(`Cliente: ${comprobante.cliente}`, 48, 320);
+
+    let y = 375;
+    contexto.font = '20px Arial';
+    comprobante.productos.forEach((item) => {
+      const descripcion = `${item.nombre} × ${item.cantidad}`;
+      contexto.fillText(descripcion.length > 42 ? `${descripcion.slice(0, 39)}...` : descripcion, 48, y);
+      contexto.textAlign = 'right';
+      contexto.fillText(`$${dinero(item.subtotal)}`, ancho - 48, y);
+      contexto.textAlign = 'left';
+      y += 54;
+    });
+
+    contexto.strokeStyle = '#d8d2df';
+    contexto.beginPath();
+    contexto.moveTo(48, y - 15);
+    contexto.lineTo(ancho - 48, y - 15);
+    contexto.stroke();
+    contexto.font = 'bold 26px Arial';
+    contexto.fillText('Total', 48, y + 30);
+    contexto.textAlign = 'right';
+    contexto.fillText(`$${dinero(comprobante.total)}`, ancho - 48, y + 30);
+    contexto.textAlign = 'left';
+    contexto.font = '20px Arial';
+    contexto.fillStyle = '#666666';
+    contexto.fillText(`Pago: ${comprobante.metodoPago}`, 48, y + 75);
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se pudo crear el comprobante.')), 'image/png');
+    });
+  };
+
+  const descargarComprobante = async () => {
+    const blob = await generarImagenComprobante();
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `comprobante-${comprobante.id || 'venta'}.png`;
+    enlace.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const compartirComprobante = async () => {
+    const pestanaWhatsApp = window.open('about:blank', '_blank');
+    try {
+      const blob = await generarImagenComprobante();
+      const archivo = new File([blob], `comprobante-${comprobante.id || 'venta'}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [archivo] })) {
+        pestanaWhatsApp?.close();
+        await navigator.share({ files: [archivo], title: 'Comprobante de compra', text: textoComprobante });
+        return;
+      }
+      if (pestanaWhatsApp) {
+        pestanaWhatsApp.location.href = `https://wa.me/?text=${encodeURIComponent(textoComprobante)}`;
+      }
+    } catch (error) {
+      pestanaWhatsApp?.close();
+      if (error.name !== 'AbortError') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(textoComprobante)}`, '_blank', 'noopener,noreferrer');
+      }
+    }
   };
 
   // ==========================================
@@ -1015,6 +1128,63 @@ function Caja() {
         </div>
 
       </div>
+
+      {comprobante && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-5 text-center">
+              <img
+                src="/logo-emprendimiento.jpeg"
+                alt="Alquimia Beauty’s"
+                className="mx-auto mb-3 h-24 w-full max-w-[220px] rounded-xl object-cover"
+              />
+              <h2 className="mt-2 text-2xl font-black text-gray-900">Compra registrada</h2>
+              <p className="text-sm text-gray-500">Comprobante{comprobante.id ? ` #${comprobante.id}` : ''}</p>
+            </div>
+
+            <div className="mb-5 rounded-xl border border-gray-200 p-4 text-sm text-gray-700">
+              <div className="mb-3 flex justify-between gap-3">
+                <span>Cliente: <strong>{comprobante.cliente}</strong></span>
+                <span>{comprobante.fecha.toLocaleDateString('es-AR')}</span>
+              </div>
+              <div className="space-y-2 border-y border-dashed border-gray-200 py-3">
+                {comprobante.productos.map((item, index) => (
+                  <div key={`${item.id_producto}-${index}`} className="flex justify-between gap-3">
+                    <span>{item.nombre} × {item.cantidad}</span>
+                    <span className="whitespace-nowrap">${dinero(item.subtotal)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex justify-between font-black text-gray-900">
+                <span>Total</span>
+                <span>${dinero(comprobante.total)}</span>
+              </div>
+              <p className="mt-2 text-gray-500">Pago: {comprobante.metodoPago}</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={compartirComprobante}
+                className="flex-1 rounded-xl bg-green-600 px-4 py-3 font-bold text-white hover:bg-green-700"
+              >
+                Compartir recibo
+              </button>
+              <button
+                onClick={descargarComprobante}
+                className="rounded-xl bg-violet-100 px-4 py-3 font-bold text-violet-800 hover:bg-violet-200"
+              >
+                Descargar imagen del recibo
+              </button>
+              <button
+                onClick={() => setComprobante(null)}
+                className="rounded-xl bg-gray-100 px-4 py-3 font-bold text-gray-700 hover:bg-gray-200"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
 
