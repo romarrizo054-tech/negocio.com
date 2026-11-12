@@ -8,6 +8,7 @@ function Ventas() {
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [detalleVenta, setDetalleVenta] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
 
   const [mostrarEditar, setMostrarEditar] = useState(false);
   const [ventaEditando, setVentaEditando] = useState(null);
@@ -358,6 +359,26 @@ useEffect(() => {
       0
     );
 
+  const ventasFiltradas = [...ventas]
+    .filter((venta) => {
+      const termino = busqueda.trim().toLocaleLowerCase('es-AR');
+      if (!termino) return true;
+
+      const campos = [
+        venta.cliente_fiado,
+        ...(venta.productos || [])
+      ];
+
+      return campos.some((campo) =>
+        String(campo || '').toLocaleLowerCase('es-AR').includes(termino)
+      );
+    })
+    .sort((a, b) => {
+      const aEsFiado = a.metodo_pago === 'Fiado';
+      const bEsFiado = b.metodo_pago === 'Fiado';
+      return Number(bEsFiado) - Number(aEsFiado);
+    });
+
   // ==========================================
   // INTERFAZ
   // ==========================================
@@ -449,6 +470,20 @@ useEffect(() => {
           TABLA
       ====================================== */}
 
+      <div className="mb-4">
+        <label htmlFor="buscar-venta" className="sr-only">
+          Buscar por cliente o producto
+        </label>
+        <input
+          id="buscar-venta"
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre del cliente o producto vendido/fiado..."
+          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        />
+      </div>
+
       <div className="bg-white shadow-xl rounded-2xl overflow-x-auto border border-gray-100">
 
         {cargando ? (
@@ -475,6 +510,13 @@ useEffect(() => {
 
           </div>
 
+        ) : ventasFiltradas.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-4xl mb-3">🔎</p>
+            <p className="text-gray-500 font-bold">
+              No hay ventas que coincidan con “{busqueda}”.
+            </p>
+          </div>
         ) : (
 
           <table className="min-w-full text-left border-collapse">
@@ -521,7 +563,7 @@ useEffect(() => {
 
             <tbody className="divide-y divide-gray-100">
 
-              {ventas.map((venta) => (
+              {ventasFiltradas.map((venta) => (
 
                 <tr
                   key={venta.id_venta}
